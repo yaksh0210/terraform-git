@@ -54,6 +54,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
     sku       = "22_04-lts"
-    version   = "22.04.202309120"
+    version   = "latest"
   }
 }
