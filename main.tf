@@ -1,5 +1,5 @@
 data "azurerm_resource_group" "rg" {
-  name     = var.resource_group_name
+  name = var.resource_group_name
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -42,6 +42,8 @@ resource "azurerm_linux_virtual_machine" "vm" {
   network_interface_ids = [
     azurerm_network_interface.nic.id
   ]
+
+  encryption_at_host_enabled = true
 
   os_disk {
     caching              = "ReadWrite"
