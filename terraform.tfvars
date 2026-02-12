@@ -12,7 +12,7 @@ location            = "southeastasia"
 vm_name        = "devops-vm"
 vm_size        = "Standard_B2s"
 admin_username = "azureuser"
-admin_password = "Test@1234567"
+admin_password = "Password@1234"
 
 # -----------------------------
 # Networking
