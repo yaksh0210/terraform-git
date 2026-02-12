@@ -1,13 +1,13 @@
 #!/bin/bash
-apt update -y
+sudo apt update -y
 
 # Install Docker
-apt install -y docker.io
-systemctl enable docker
-systemctl start docker
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
 
 # Install Docker Compose
-apt install -y docker-compose
+sudo apt install -y docker-compose
 
 ## Install Grafana
 
@@ -20,9 +20,8 @@ echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com beta
 sudo apt-get update
 sudo apt-get install grafana -y
 
-sudo systemctl daemon-reload
-systemctl enable grafana-server
-systemctl start grafana-server
+sudo systemctl enable grafana-server
+sudo systemctl start grafana-server
 
 
 ## Install Prometheus
@@ -97,17 +96,17 @@ EOL
 
 # Reload systemd to pick up the new Prometheus service
 echo "Reloading systemd..."
-sudo systemctl daemon-reload
 
 # Enable and start the Prometheus service
 echo "Enabling and starting Prometheus..."
+
 sudo systemctl enable prometheus
 sudo systemctl start prometheus
 
 
 ## Install Node Exporter
 
-useradd -rs /bin/false node_exporter
+sudo useradd -rs /bin/false node_exporter
 wget https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-amd64.tar.gz
 tar -xvf node_exporter-1.10.2.linux-amd64.tar.gz
 cp node_exporter-1.10.2.linux-amd64/node_exporter /usr/local/bin/
@@ -125,6 +124,5 @@ ExecStart=/usr/local/bin/node_exporter
 WantedBy=default.target
 EOF
 
-systemctl daemon-reload
-systemctl enable node_exporter
-systemctl start node_exporter
+sudo systemctl enable node_exporter
+sudo systemctl start node_exporter
