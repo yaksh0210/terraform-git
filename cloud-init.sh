@@ -9,7 +9,27 @@ systemctl start docker
 # Install Docker Compose
 apt install -y docker-compose
 
-# # Install Node Exporter
+## Install Grafana
+
+sudo apt-get install -y apt-transport-https wget -y
+sudo mkdir -p /etc/apt/keyrings/
+wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com beta main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+
+sudo apt-get update
+sudo apt-get install grafana -y
+
+systemctl enable grafana-server
+systemctl start grafana-server
+
+
+## Install Prometheus
+
+
+
+## Install Node Exporter
+
 # useradd -rs /bin/false node_exporter
 # wget https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-amd64.tar.gz
 # tar -xvf node_exporter-1.10.2.linux-amd64.tar.gz
@@ -31,17 +51,3 @@ apt install -y docker-compose
 # systemctl daemon-reload
 # systemctl enable node_exporter
 # systemctl start node_exporter
-
-# # Install Prometheus
-# apt install -y prometheus
-# systemctl enable prometheus
-# systemctl start prometheus
-
-# # Install Grafana
-# apt install -y apt-transport-https software-properties-common
-# wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
-# add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
-# apt update -y
-# apt install -y grafana
-# systemctl enable grafana-server
-# systemctl start grafana-server
