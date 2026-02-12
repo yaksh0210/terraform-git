@@ -18,8 +18,8 @@ admin_password = "Test@1234567"
 # Networking
 # -----------------------------
 
-vnet_name             = "vnet-demo"
-subnet_name           = "subnet-demo"
-nic_name              = "nic-demo"
-ip_configuration_name = "internal"
+vnet_name                     = "vnet-demo"
+subnet_name                   = "subnet-demo"
+nic_name                      = "nic-demo"
+ip_configuration_name         = "internal"
 private_ip_address_allocation = "Dynamic"

@@ -42,50 +42,66 @@ resource "azurerm_network_security_group" "nsg" {
   resource_group_name = data.azurerm_resource_group.rg.name
 
   security_rule {
-    name                       = "Allow-SSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "182.76.141.104/29,115.112.142.32/29,14.97.73.248/29"
+    name                   = "Allow-SSH"
+    priority               = 1001
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = "*"
+    destination_port_range = "22"
+    source_address_prefixes = [
+      "182.76.141.104/29",
+      "115.112.142.32/29",
+      "14.97.73.248/29"
+    ]
     destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "Allow-App"
-    priority                   = 1002
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "5000"
-    source_address_prefix      = "182.76.141.104/29,115.112.142.32/29,14.97.73.248/29"
+    name                   = "Allow-App"
+    priority               = 1002
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = "*"
+    destination_port_range = "5000"
+    source_address_prefixes = [
+      "182.76.141.104/29",
+      "115.112.142.32/29",
+      "14.97.73.248/29"
+    ]
     destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "Allow-Prometheus"
-    priority                   = 1003
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "9090"
-    source_address_prefix      = "182.76.141.104/29,115.112.142.32/29,14.97.73.248/29"
+    name                   = "Allow-Prometheus"
+    priority               = 1003
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = "*"
+    destination_port_range = "9090"
+    source_address_prefixes = [
+      "182.76.141.104/29",
+      "115.112.142.32/29",
+      "14.97.73.248/29"
+    ]
     destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "Allow-Grafana"
-    priority                   = 1004
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "3000"
-    source_address_prefix      = "182.76.141.104/29,115.112.142.32/29,14.97.73.248/29"
+    name                   = "Allow-Grafana"
+    priority               = 1004
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = "*"
+    destination_port_range = "3000"
+    source_address_prefixes = [
+      "182.76.141.104/29",
+      "115.112.142.32/29",
+      "14.97.73.248/29"
+    ]
     destination_address_prefix = "*"
   }
 }
