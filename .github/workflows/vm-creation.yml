@@ -159,16 +159,30 @@ jobs:
 
     - name: Create Azure DevOps Issue
       run: |
-        # Create work item JSON
+        # Create work item JSON using Azure DevOps JSON Patch format
         cat > /tmp/bug.json << 'JSONEOF'
-        {
-          "fields": {
-            "System.Title": "Terraform VM Deployment Failed - ${{ github.run_id }}",
-            "System.Description": "${{ steps.ollama.outputs.bug_description }}",
-            "System.State": "New",
-            "System.Tags": "terraform;azure;ci-cd;failure"
+        [
+          {
+            "op": "add",
+            "path": "/fields/System.Title",
+            "value": "Terraform VM Deployment Failed - ${{ github.run_id }}"
+          },
+          {
+            "op": "add",
+            "path": "/fields/System.Description",
+            "value": "${{ steps.ollama.outputs.bug_description }}"
+          },
+          {
+            "op": "add",
+            "path": "/fields/System.State",
+            "value": "New"
+          },
+          {
+            "op": "add",
+            "path": "/fields/System.Tags",
+            "value": "terraform;azure;ci-cd;failure"
           }
-        }
+        ]
         JSONEOF
 
         # Debug: Show the JSON content
