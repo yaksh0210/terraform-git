@@ -177,9 +177,11 @@ jobs:
         echo ""
 
         # Create the issue using Azure DevOps REST API (force HTTP/1.1)
+        # Using proper base64 encoding with empty username
+        AZURE_AUTH=$(echo -n ":${{ secrets.AZURE_DEVOPS_PAT }}" | base64 -w 0)
         curl --http1.1 -s -o /tmp/curl_output.txt -w "%{http_code}" \
           -H "Content-Type: application/json" \
-          -H "Authorization: Basic $(echo -n :${{ secrets.AZURE_DEVOPS_PAT }} | base64)" \
+          -H "Authorization: Basic $AZURE_AUTH" \
           --data-binary @/tmp/bug.json \
           "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Issue?api-version=7.0"
 
