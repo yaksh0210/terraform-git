@@ -157,10 +157,10 @@ jobs:
         echo "bug_description=$BUG_DESCRIPTION" >> $GITHUB_OUTPUT
         echo "Bug description generated: $BUG_DESCRIPTION"
 
-    - name: Create Azure DevOps Bug
+    - name: Create Azure DevOps Issue
       run: |
         # Create work item JSON
-        cat > /tmp/bug.json << EOF
+        cat > /tmp/bug.json << 'JSONEOF'
         {
           "fields": {
             "System.Title": "Terraform VM Deployment Failed - ${{ github.run_id }}",
@@ -169,17 +169,19 @@ jobs:
             "System.Tags": "terraform;azure;ci-cd;failure"
           }
         }
-        EOF
+        JSONEOF
 
         # Debug: Show the JSON content
+        echo "JSON Content:"
         cat /tmp/bug.json
+        echo ""
 
-        # Create the bug using Azure DevOps REST API
-        curl -X POST \
+        # Create the issue using Azure DevOps REST API
+        curl -v -X POST \
           -H "Content-Type: application/json" \
           -H "Authorization: Basic $(echo -n :${{ secrets.AZURE_DEVOPS_PAT }} | base64)" \
-          --data @/tmp/bug.json \
-          "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Bug?api-version=7.0"
+          --data-binary @/tmp/bug.json \
+          "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Issue?api-version=7.0"
 
     - name: Stop and remove Ollama container
       if: always()
