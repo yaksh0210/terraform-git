@@ -1,4 +1,4 @@
-name: Azure VM via Terraform
+name: New VM via Terraform
 
 on:
   workflow_dispatch:
