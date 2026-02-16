@@ -117,14 +117,14 @@ jobs:
       id: ollama
       run: |
         # Pull a lightweight model
-        docker exec ollama ollama pull llama3.2
+        docker exec ollama ollama pull llama3.2 || echo "Model pull failed, trying to continue"
 
         # Create prompt for error analysis
         cat > /tmp/prompt.txt << 'EOF'
         You are a DevOps engineer analyzing Terraform deployment failures. 
-        Analyze this error and create a concise bug description for Azure DevOps.
+        Create a concise bug description for Azure DevOps.
 
-        Error context: ${{ steps.context.outputs.error_context }}
+        Error: Terraform pipeline failed. Run URL: ${{ github.run_url }}
 
         Create a brief, actionable bug description that includes:
         1. What failed
@@ -134,13 +134,28 @@ jobs:
         Output ONLY the bug description, nothing else.
         EOF
 
-        # Call Ollama API
-        RESPONSE=$(curl -s http://localhost:11434/api/generate -d "{\"model\": \"llama3.2\", \"prompt\": \"$(cat /tmp/prompt.txt)\", \"stream\": false}")
+        # Call Ollama API with retry logic
+        for i in 1 2 3; do
+          echo "Attempt $i: Calling Ollama API..."
+          RESPONSE=$(curl -s --max-time 60 http://localhost:11434/api/generate \
+            -d "{\"model\": \"llama3.2\", \"prompt\": \"$(cat /tmp/prompt.txt)\", \"stream\": false}" 2>&1) || true
+          
+          if echo "$RESPONSE" | grep -q "response"; then
+            break
+          fi
+          sleep 5
+        done
 
         # Extract the description
-        BUG_DESCRIPTION=$(echo $RESPONSE | jq -r '.response // .description // "Terraform pipeline failed - please check logs"')
+        BUG_DESCRIPTION=$(echo $RESPONSE | jq -r '.response // .description // empty' 2>/dev/null)
+
+        # If still empty, use fallback
+        if [ -z "$BUG_DESCRIPTION" ]; then
+          BUG_DESCRIPTION="Terraform pipeline failed. Please check workflow logs for details. Run URL: ${{ github.run_url }}"
+        fi
 
         echo "bug_description=$BUG_DESCRIPTION" >> $GITHUB_OUTPUT
+        echo "Bug description generated: $BUG_DESCRIPTION"
 
     - name: Create Azure DevOps Bug
       run: |
@@ -156,11 +171,14 @@ jobs:
         }
         EOF
 
+        # Debug: Show the JSON content
+        cat /tmp/bug.json
+
         # Create the bug using Azure DevOps REST API
         curl -X POST \
           -H "Content-Type: application/json" \
           -H "Authorization: Basic $(echo -n :${{ secrets.AZURE_DEVOPS_PAT }} | base64)" \
-          -d @/tmp/bug.json \
+          --data @/tmp/bug.json \
           "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Bug?api-version=7.0"
 
     - name: Stop and remove Ollama container
