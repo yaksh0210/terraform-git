@@ -174,11 +174,6 @@ jobs:
           },
           {
             "op": "add",
-            "path": "/fields/System.State",
-            "value": "New"
-          },
-          {
-            "op": "add",
             "path": "/fields/System.Tags",
             "value": "terraform;azure;ci-cd;failure"
           }
