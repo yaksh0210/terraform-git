@@ -55,7 +55,7 @@ jobs:
     - name: Terraform Plan
       run: terraform plan
       id: plan
-      continue-on-error: true
+      # REMOVED: continue-on-error so job actually fails on error
 
     - id: capture_error
       if: failure()
@@ -81,7 +81,7 @@ jobs:
     - name: Terraform Apply
       run: terraform apply -auto-approve
       id: apply
-      continue-on-error: true
+      # REMOVED: continue-on-error so job actually fails on error
 
     - id: capture_error
       if: failure()
@@ -91,7 +91,7 @@ jobs:
   create-azure-devops-ticket:
     runs-on: ubuntu-latest
     needs: [ terraform-validate, terraform-plan, terraform-apply ]
-    if: failure()
+    if: ${{ failure() || contains(needs.*.result, 'failure') }}
     steps:
     - name: Capture failure context
       id: context
