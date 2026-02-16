@@ -176,12 +176,17 @@ jobs:
         cat /tmp/bug.json
         echo ""
 
-        # Create the issue using Azure DevOps REST API
-        curl -v -X POST \
+        # Create the issue using Azure DevOps REST API (force HTTP/1.1)
+        curl --http1.1 -s -o /tmp/curl_output.txt -w "%{http_code}" \
           -H "Content-Type: application/json" \
           -H "Authorization: Basic $(echo -n :${{ secrets.AZURE_DEVOPS_PAT }} | base64)" \
           --data-binary @/tmp/bug.json \
           "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Issue?api-version=7.0"
+
+        HTTP_CODE=$(cat /tmp/curl_output.txt)
+        echo "HTTP Response Code: $HTTP_CODE"
+        echo "Response Body:"
+        cat /tmp/curl_output.txt
 
     - name: Stop and remove Ollama container
       if: always()
