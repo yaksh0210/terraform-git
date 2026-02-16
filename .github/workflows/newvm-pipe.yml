@@ -1,4 +1,4 @@
-name: New VM via Terraform
+name: Azure VM via Terraform
 
 on:
   workflow_dispatch:
@@ -17,11 +17,10 @@ jobs:
 
   terraform:
     runs-on: ubuntu-latest
-    outputs:
-      job_status: ${{ steps.set_status.outputs.status }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -38,26 +37,18 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
 
-      - name: Set Job Status
-        id: set_status
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-          fi
-
   create-azure-devops-ticket:
     runs-on: ubuntu-latest
     needs: terraform
-    if: needs.terraform.outputs.job_status == 'failure'
+
+    # 🔥 THIS IS THE IMPORTANT FIX
+    if: needs.terraform.result == 'failure'
 
     steps:
       - name: Create Azure DevOps Work Item
         run: |
 
-          echo "Creating Azure DevOps ticket..."
+          echo "Terraform failed. Creating Azure DevOps ticket..."
 
           cat > /tmp/bug.json << EOF
           [
@@ -69,7 +60,7 @@ jobs:
             {
               "op": "add",
               "path": "/fields/System.Description",
-              "value": "Terraform deployment failed in GitHub Actions. Please check logs. Run URL: ${{ github.run_url }}"
+              "value": "Terraform pipeline failed in GitHub Actions.\n\nRepository: ${{ github.repository }}\nRun URL: ${{ github.run_url }}\n\nPlease check the workflow logs for exact error."
             },
             {
               "op": "add",
