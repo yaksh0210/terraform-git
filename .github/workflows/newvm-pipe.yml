@@ -1,0 +1,91 @@
+name: Azure VM via Terraform
+
+on:
+  workflow_dispatch:
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+  AZURE_DEVOPS_ORG: yakshrawal
+  AZURE_DEVOPS_PROJECT: mlops_practice
+  AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+
+jobs:
+
+  terraform:
+    runs-on: ubuntu-latest
+    outputs:
+      job_status: ${{ steps.set_status.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Set Job Status
+        id: set_status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+  create-azure-devops-ticket:
+    runs-on: ubuntu-latest
+    needs: terraform
+    if: needs.terraform.outputs.job_status == 'failure'
+
+    steps:
+      - name: Create Azure DevOps Work Item
+        run: |
+
+          echo "Creating Azure DevOps ticket..."
+
+          cat > /tmp/bug.json << EOF
+          [
+            {
+              "op": "add",
+              "path": "/fields/System.Title",
+              "value": "Terraform VM Deployment Failed - Run ${{ github.run_id }}"
+            },
+            {
+              "op": "add",
+              "path": "/fields/System.Description",
+              "value": "Terraform deployment failed in GitHub Actions. Please check logs. Run URL: ${{ github.run_url }}"
+            },
+            {
+              "op": "add",
+              "path": "/fields/System.State",
+              "value": "New"
+            },
+            {
+              "op": "add",
+              "path": "/fields/System.Tags",
+              "value": "terraform;azure;ci-cd;failure"
+            }
+          ]
+          EOF
+
+          curl -X POST \
+            -u :${{ secrets.AZURE_DEVOPS_PAT }} \
+            -H "Content-Type: application/json-patch+json" \
+            --data-binary @/tmp/bug.json \
+            "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Issue?api-version=7.0"
