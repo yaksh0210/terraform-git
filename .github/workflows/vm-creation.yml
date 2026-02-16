@@ -99,12 +99,16 @@ jobs:
         # Get the job that failed
         FAILED_JOB="${{ join(needs.*.result, ', ') }}"
 
+        # Get workflow run URL
+        RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
         # Capture error details from previous jobs
         ERROR_LOG="Terraform pipeline failed. "
         ERROR_LOG+="Failed jobs: $FAILED_JOB. "
-        ERROR_LOG+="Run URL: ${{ github.run_url }}"
+        ERROR_LOG+="Run URL: $RUN_URL"
 
         echo "error_context=$ERROR_LOG" >> $GITHUB_OUTPUT
+        echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
 
     - name: Start Ollama container
       run: |
@@ -116,6 +120,9 @@ jobs:
     - name: Analyze error with Ollama
       id: ollama
       run: |
+        # Get the run URL
+        RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
         # Pull a lightweight model
         docker exec ollama ollama pull llama3.2 || echo "Model pull failed, trying to continue"
 
@@ -124,7 +131,8 @@ jobs:
         You are a DevOps engineer analyzing Terraform deployment failures. 
         Create a concise bug description for Azure DevOps.
 
-        Error: Terraform pipeline failed. Run URL: ${{ github.run_url }}
+        Error: Terraform pipeline failed. 
+        Workflow Run URL: RUN_URL
 
         Create a brief, actionable bug description that includes:
         1. What failed
@@ -133,6 +141,9 @@ jobs:
 
         Output ONLY the bug description, nothing else.
         EOF
+
+        # Replace placeholder in prompt
+        sed -i "s|RUN_URL|$RUN_URL|g" /tmp/prompt.txt
 
         # Call Ollama API with retry logic
         for i in 1 2 3; do
@@ -149,9 +160,9 @@ jobs:
         # Extract the description
         BUG_DESCRIPTION=$(echo $RESPONSE | jq -r '.response // .description // empty' 2>/dev/null)
 
-        # If still empty, use fallback
+        # If still empty, use fallback with proper URL
         if [ -z "$BUG_DESCRIPTION" ]; then
-          BUG_DESCRIPTION="Terraform pipeline failed. Please check workflow logs for details. Run URL: ${{ github.run_url }}"
+          BUG_DESCRIPTION="Terraform pipeline failed. Please check workflow logs for details. Workflow Run URL: $RUN_URL"
         fi
 
         echo "bug_description=$BUG_DESCRIPTION" >> $GITHUB_OUTPUT
