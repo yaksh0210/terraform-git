@@ -53,3 +53,16 @@ variable "nic_name" {
   description = "nic_name"
   type        = string
 }
+
+
+## tags
+
+variable "resource_owner" {
+  description = "Owner of the resource"
+  type        = string
+}
+
+variable "resource_group_owner" {
+  description = "Owner of the resource group"
+  type        = string
+}

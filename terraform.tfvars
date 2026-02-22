@@ -23,3 +23,9 @@ subnet_name                   = "subnet-demo"
 nic_name                      = "nic-demo"
 ip_configuration_name         = "internal"
 private_ip_address_allocation = "Dynamic"
+
+
+## Tags
+
+resource_owner       = "Honey.shah@einfochips.com"
+resource_group_owner = "Honey.shah@einfochips.com"
