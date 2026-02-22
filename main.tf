@@ -1,7 +1,7 @@
 locals {
   common_tags = {
     "Resource Owner" = var.resource_owner
-    "Resource Owner" = var.resource_group_owner
+    "Resource Group Owner" = var.resource_group_owner
     Environment      = "Dev"
     Project          = "DevOps Automation"
   }
