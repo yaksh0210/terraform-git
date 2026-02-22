@@ -3,198 +3,62 @@ name: Azure VM via Terraform
 on:
   workflow_dispatch:
 
-
 env:
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
   ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  AZURE_DEVOPS_ORG: yakshrawal
-  AZURE_DEVOPS_PROJECT: mlops_practice
-  AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
-
+ 
 jobs:
   terraform-validate:
     runs-on: ubuntu-latest
-    outputs:
-      error_message: ${{ steps.capture_error.outputs.error_message }}
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    - name: Terraform Init
-      run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
-    - name: Terraform format
-      run: terraform fmt
+      - name: Terraform format
+        run: terraform fmt
 
-    - name: Terraform validate
-      run: terraform validate
-      id: validate
-
-    - id: capture_error
-      if: failure()
-      run: |
-        ERROR_MSG="Terraform validation failed. Run URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        echo "error_message=$ERROR_MSG" >> $GITHUB_OUTPUT
+      - name: Terraform validate
+        run: terraform validate
 
   terraform-plan:
     runs-on: ubuntu-latest
     needs: terraform-validate
-    outputs:
-      error_message: ${{ steps.capture_error.outputs.error_message }}
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    - name: Terraform Init
-      run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
-    - name: Terraform Plan
-      run: terraform plan
-      id: plan
-
-    - id: capture_error
-      if: failure()
-      run: |
-        ERROR_MSG="Terraform plan failed. Run URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        echo "error_message=$ERROR_MSG" >> $GITHUB_OUTPUT
+      - name: Terraform Plan
+        run: terraform plan
 
   terraform-apply:
     runs-on: ubuntu-latest
     needs: terraform-plan
+
     environment:
       name: production
-    outputs:
-      error_message: ${{ steps.capture_error.outputs.error_message }}
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    - name: Terraform Init
-      run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
-    - name: Terraform Apply
-      run: terraform apply -auto-approve
-      id: apply
-
-    - id: capture_error
-      if: failure()
-      run: |
-        ERROR_MSG="Terraform apply failed. Run URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        echo "error_message=$ERROR_MSG" >> $GITHUB_OUTPUT
-
-  create-azure-devops-ticket:
-    runs-on: ubuntu-latest
-    needs: [ terraform-validate, terraform-plan, terraform-apply ]
-    if: ${{ failure() || contains(needs.*.result, 'failure') }}
-    steps:
-    - name: Start Ollama container
-      run: |
-        docker run -d --name ollama -p 11434:11434 ollama/ollama:latest
-
-    - name: Wait for Ollama to be ready
-      run: sleep 30
-
-    - name: Analyze error with Ollama
-      id: ollama
-      run: |
-        # Get error messages from failed jobs
-        ERROR_MSG="${{ needs.terraform-validate.outputs.error_message }} ${{ needs.terraform-plan.outputs.error_message }} ${{ needs.terraform-apply.outputs.error_message }}"
-
-        # Pull a lightweight model
-        docker exec ollama ollama pull llama3.2 || echo "Model pull failed, trying to continue"
-
-        # Create prompt for error analysis
-        cat > /tmp/prompt.txt << 'EOF'
-        You are a DevOps engineer analyzing Terraform deployment failures. 
-        Create a concise bug description for Azure DevOps.
-
-        Error: ERROR_MSG
-
-        Create a brief, actionable bug description that includes:
-        1. What failed
-        2. Possible root cause
-        3. Suggested fix
-
-        Output ONLY the bug description, nothing else.
-        EOF
-
-        # Replace placeholder in prompt
-        sed -i "s|ERROR_MSG|$ERROR_MSG|g" /tmp/prompt.txt
-
-        # Call Ollama API with retry logic
-        for i in 1 2 3; do
-          echo "Attempt $i: Calling Ollama API..."
-          RESPONSE=$(curl -s --max-time 60 http://localhost:11434/api/generate \
-            -d "{\"model\": \"llama3.2\", \"prompt\": \"$(cat /tmp/prompt.txt)\", \"stream\": false}" 2>&1) || true
-          
-          if echo "$RESPONSE" | grep -q "response"; then
-            break
-          fi
-          sleep 5
-        done
-
-        # Extract the description
-        BUG_DESCRIPTION=$(echo $RESPONSE | jq -r '.response // .description // empty' 2>/dev/null)
-
-        # If still empty, use fallback
-        if [ -z "$BUG_DESCRIPTION" ]; then
-          BUG_DESCRIPTION="Terraform pipeline failed. $ERROR_MSG"
-        fi
-
-        echo "bug_description=$BUG_DESCRIPTION" >> $GITHUB_OUTPUT
-        echo "Bug description generated: $BUG_DESCRIPTION"
-
-    - name: Create Azure DevOps Issue
-      run: |
-        # Create work item JSON using Azure DevOps JSON Patch format
-        cat > /tmp/bug.json << 'JSONEOF'
-        [
-          {
-            "op": "add",
-            "path": "/fields/System.Title",
-            "value": "Terraform VM Deployment Failed - ${{ github.run_id }}"
-          },
-          {
-            "op": "add",
-            "path": "/fields/System.Description",
-            "value": "${{ steps.ollama.outputs.bug_description }}"
-          },
-          {
-            "op": "add",
-            "path": "/fields/System.Tags",
-            "value": "terraform;azure;ci-cd;failure"
-          }
-        ]
-        JSONEOF
-
-        # Debug: Show the JSON content
-        echo "JSON Content:"
-        cat /tmp/bug.json
-        echo ""
-
-        # Create the issue using Azure DevOps REST API
-        AZURE_AUTH=$(echo -n ":${{ secrets.AZURE_DEVOPS_PAT }}" | base64 -w 0)
-        curl --http1.1 -s -o /tmp/curl_output.txt -w "%{http_code}" \
-          -H "Content-Type: application/json-patch+json" \
-          -H "Authorization: Basic $AZURE_AUTH" \
-          --data-binary @/tmp/bug.json \
-          "https://dev.azure.com/${{ env.AZURE_DEVOPS_ORG }}/${{ env.AZURE_DEVOPS_PROJECT }}/_apis/wit/workitems/\$Issue?api-version=7.0"
-
-        HTTP_CODE=$(cat /tmp/curl_output.txt)
-        echo "HTTP Response Code: $HTTP_CODE"
-        echo "Response Body:"
-        cat /tmp/curl_output.txt
-
-    - name: Stop and remove Ollama container
-      if: always()
-      run: |
-        docker stop ollama || true
-        docker rm ollama || true
+      - name: Terraform Apply
+        run: terraform apply -auto-approve

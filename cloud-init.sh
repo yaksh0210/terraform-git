@@ -8,6 +8,7 @@ sudo systemctl start docker
 
 # Install Docker Compose
 sudo apt install -y docker-compose
+sudo usermod -aG docker $USER
 
 ## Install Grafana
 
@@ -75,7 +76,7 @@ scrape_configs:
       - targets: ['localhost:9090']
   - job_name: 'node_exporter'
     static_configs:
-      - targets: ['localhost:9091']      
+      - targets: ['localhost:9100']      
 EOL
 
 # Create Prometheus systemd service file
