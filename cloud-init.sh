@@ -7,7 +7,8 @@ sudo systemctl enable docker
 sudo systemctl start docker
 
 # Install Docker Compose
-sudo apt install -y docker-compose
+sudo apt update
+sudo apt install docker-compose-plugin -y
 sudo usermod -aG docker $USER
 
 ## Install Grafana
@@ -127,3 +128,18 @@ EOF
 
 sudo systemctl enable node_exporter
 sudo systemctl start node_exporter
+
+## Install Docker app
+
+# Install git
+sudo apt install -y git
+
+# Clone repo
+
+cd /home/azureuser
+git clone https://github.com/yaksh0210/devops-demo-app.git
+
+cd devops-demo-app
+
+# Run app
+sudo docker compose up -d --build
